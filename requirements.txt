@@ -1,0 +1,4 @@
+sse-starlette==1.2.1
+fastapi==0.88.0
+uvicorn==0.20.0
+httpx==0.23.3
