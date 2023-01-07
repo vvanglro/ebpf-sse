@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+<script>
+    const sse = new EventSource('sse');
+
+    sse.onmessage = function (e) {
+        console.log(e.data);
+    };
+    sse.addEventListener('BashReadline', function (e) {
+        console.log("This is BashReadline event msg:", e.data);
+        document.getElementById("BashReadline").innerText = document.getElementById("BashReadline").innerText +
+            "This is BashReadline event msg:" + e.data + "\n";
+    });
+
+</script>
+<div class="test">
+    <div id="BashReadline"></div>
+</div>
+</body>
+</html>
