@@ -7,10 +7,11 @@ WORKDIR /
 COPY --from=ksrc /kernel-dev.tar /
 RUN tar xf kernel-dev.tar && rm kernel-dev.tar
 
-RUN apt-get update
-RUN apt install -y kmod python3-bpfcc
+RUN apt update
+RUN apt install -y kmod python3-bpfcc python3-pip
 
-COPY hello_world.py /root
-
-WORKDIR /root
+RUN mkdir /workspace/
+WORKDIR /workspace/
+ADD . /workspace/
+RUN python3 -m pip install -r requirements.txt
 CMD mount -t debugfs debugfs /sys/kernel/debug && /bin/bash
