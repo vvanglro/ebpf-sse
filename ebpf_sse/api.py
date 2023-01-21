@@ -1,50 +1,43 @@
-import asyncio
-
-from fastapi import FastAPI, Depends
+from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
-from sse_starlette.sse import EventSourceResponse, ServerSentEvent
+from redis.exceptions import ResponseError
+from sse_starlette.sse import EventSourceResponse
 from starlette import status
 
-
-class Stream:
-    def __init__(self) -> None:
-        self._queue = asyncio.Queue()
-
-    def __aiter__(self) -> "Stream":
-        return self
-
-    async def __anext__(self) -> ServerSentEvent:
-        try:
-            item = self._queue.get_nowait()
-        except asyncio.QueueEmpty:
-            await asyncio.sleep(3)
-            return ServerSentEvent(data="Empty")
-        else:
-            return item
-
-    async def send(self, value: ServerSentEvent) -> None:
-        await self._queue.put(value)
-
+from ebpf_sse.stream import RedisServerObj
 
 app = FastAPI(title=__name__)
-_stream = Stream()
-app.dependency_overrides[Stream] = lambda: _stream
 
 
 @app.get("/sse")
-async def sse(stream: Stream = Depends()) -> EventSourceResponse:
-    return EventSourceResponse(stream)
+async def sse() -> EventSourceResponse:
+    return EventSourceResponse(RedisServerObj)
 
 
 @app.post("/message", status_code=status.HTTP_201_CREATED)
-async def send_message(message: str, event: str, stream: Stream = Depends()) -> dict:
-    await stream.send(
-        ServerSentEvent(data=message, event=event)
-    )
+async def send_message(message: str, event: str) -> dict:
+    await RedisServerObj.pool.xadd(name="ebpf_sse", fields={"data": message, "event": event},
+                                   maxlen=100)
     return {'success': True}
 
 
 app.mount("/", StaticFiles(directory="./"))
+
+
+@app.on_event("startup")
+async def startup() -> None:
+    await RedisServerObj.connect()
+    try:
+        await RedisServerObj.pool.xgroup_create(name="ebpf_sse", groupname="bash_readline", id="$", mkstream=True)
+    except ResponseError as e:
+        # https://github.com/redis/redis/issues/9893
+        if e == "BUSYGROUP Consumer Group name already exists":
+            pass
+
+
+@app.on_event("shutdown")
+async def stop_event() -> None:
+    await RedisServerObj.close()
 
 if __name__ == "__main__":
     import uvicorn

@@ -6,15 +6,15 @@
 </head>
 <body>
 <script>
-    const sse = new EventSource('sse');
+    const sse = new EventSource('/sse');
 
     sse.onmessage = function (e) {
         console.log(e.data);
     };
     sse.addEventListener('BashReadline', function (e) {
-        console.log("This is BashReadline event msg:", e.data);
+        console.log("This is BashReadline event msg: ", e.data);
         document.getElementById("BashReadline").innerText = document.getElementById("BashReadline").innerText +
-            "This is BashReadline event msg:" + e.data + "\n";
+            "This is BashReadline event msg: " + e.data + "\n";
     });
 
 </script>
