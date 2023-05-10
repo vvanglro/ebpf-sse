@@ -38,8 +38,3 @@ async def startup() -> None:
 @app.on_event("shutdown")
 async def stop_event() -> None:
     await RedisServerObj.close()
-
-if __name__ == "__main__":
-    import uvicorn
-
-    uvicorn.run(app)
